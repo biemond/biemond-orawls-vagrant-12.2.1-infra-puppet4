@@ -1,0 +1,360 @@
+---
+
+wls_os_user:              &wls_os_user              "oracle"
+wls_weblogic_user:        &wls_weblogic_user        "weblogic"
+wls_weblogic_home_dir:    &wls_weblogic_home_dir    "/opt/oracle/middleware12c/wlserver"
+wls_middleware_home_dir:  &wls_middleware_home_dir  "/opt/oracle/middleware12c"
+wls_version:              &wls_version              12212
+wls_jdk_home_dir:         &wls_jdk_home_dir         "/usr/java/latest"
+wls_oracle_base_home_dir: &wls_oracle_base_home_dir "/opt/oracle"
+wls_jsse_enabled:         &wls_jsse_enabled         true
+wls_log_dir:              &wls_log_dir              "/var/log/weblogic"
+
+
+domain_adminserver_address: &domain_adminserver_address     "10.10.10.21"
+
+
+# when you have just one domain on a server
+domain_name:                &domain_name                "adf_domain"
+domain_wls_password:        &domain_wls_password        "weblogic1"
+
+orawls::weblogic::log_output:           true
+orawls::weblogic::version:              *wls_version
+orawls::weblogic::middleware_home_dir:  *wls_middleware_home_dir
+
+orautils::os_domain:           "adf_domain"
+orautils::os_domain_path:      "/opt/oracle/middleware12c/user_projects/domains/adf_domain"
+orautils::node_mgr_path:       "/opt/oracle/middleware12c/user_projects/domains/adf_domain/bin"
+orautils::node_mgr_address:    '10.10.10.21'
+orautils::node_mgr_port:       5556
+orautils::wls_password:        "weblogic1"
+orautils::wls_adminserver:     "AdminServer"
+
+
+
+logoutput:                     &logoutput                     true
+
+# FMW installation on top of WebLogic 12.2.1
+fmw_installations:
+  'webtier1221':
+    fmw_product:               "web"
+    fmw_file1:                 "fmw_12.2.1.2.0_ohs_linux64_Disk1_1of1.zip"
+    oracle_base_home_dir:      *wls_oracle_base_home_dir
+  # 'forms1221':
+  #   fmw_product:             "forms"
+  #   fmw_file1:               "fmw_12.2.1.0.0_fr_linux64_Disk1_1of1.zip"
+  #   log_output:              true
+  #   remote_file:             false
+  # 'wcc1221':
+  #   fmw_product:             "wcc"
+  #   fmw_file1:               "fmw_12.2.1.0.0_wccontent_Disk1_1of1.zip"
+  #   log_output:              true
+  #   remote_file:             false
+  # 'wc1221':
+  #   fmw_product:             "wc"
+  #   fmw_file1:               "fmw_12.2.1.0.0_wcportal_Disk1_1of1.zip"
+  #   log_output:              true
+  #   remote_file:             false
+  # 'b2b1221':
+  #   fmw_product:             "b2b"
+  #   fmw_file1:               "fmw_12.2.1.0.0_b2b_Disk1_1of1.zip"
+  #   log_output:              true
+  #   remote_file:             false
+
+
+# no patching
+
+opatch_instances:
+  '24910964':
+    ensure:                   'present'
+    oracle_product_home_dir:  *wls_middleware_home_dir
+    patch_id:                 24910964
+    patch_file:               "p24910964_122120_Generic.zip"
+
+# create a standard domain
+domain_instances:
+  'adf_domain':
+     # domain_template:          "adf_restricted"
+     domain_template:          "adf"
+     repository_database_url:  "jdbc:oracle:thin:@wlsdb.example.com:1521/wlsrepos.example.com"
+     repository_prefix:        "DEV"
+     repository_password:      "Welcome01"
+     repository_sys_password:  "Welcome01"
+     rcu_database_url:         "wlsdb.example.com:1521:wlsrepos.example.com"
+     domain_name:              *domain_name
+     development_mode:         true
+     log_output:               *logoutput
+     webtier_enabled:          true
+     adminserver_address:      *domain_adminserver_address
+     weblogic_password:        *domain_wls_password
+     jsse_enabled:             *wls_jsse_enabled
+     log_dir:                  *wls_log_dir
+
+
+wls_setting_instances:
+  'default':
+    user:               *wls_os_user
+    weblogic_home_dir:  *wls_weblogic_home_dir
+    connect_url:        "t3://10.10.10.21:7001"
+    weblogic_user:      *wls_weblogic_user
+    weblogic_password:  *domain_wls_password
+    post_classpath:     '/opt/oracle/middleware12c/oracle_common/modules/internal/features/jrf_wlsFmw_oracle.jrf.wlst.jar'
+    require:            Orawls::Domain[adf_domain]
+
+
+# create and startup the nodemanager
+nodemanager_instances:
+  'nodemanager':
+     log_file:                              'nodemanager_adf.log'
+     nodemanager_address:                   *domain_adminserver_address
+     domain_name:                           *domain_name
+     jsse_enabled:                          *wls_jsse_enabled
+
+# startup adminserver for extra configuration
+control_instances:
+  'startWLSAdminServer':
+     domain_name:                 *domain_name
+     server_type:                 'admin'
+     target:                      'Server'
+     action:                      'start'
+     jsse_enabled:                *wls_jsse_enabled
+     adminserver_address:         *domain_adminserver_address
+     weblogic_password:           *domain_wls_password                 
+
+# create password file for WLST utility
+# userconfig_instances:
+
+authentication_provider_instances:
+  'DefaultAuthenticator':
+    ensure:             'present'
+    control_flag:       'SUFFICIENT'
+    before:             Wls_domain[adf_domain]
+
+wls_domain_instances:
+  'adf_domain':
+    ensure:                      'present'
+    jpa_default_provider:        'org.eclipse.persistence.jpa.PersistenceProvider'
+    jta_max_transactions:        '20000'
+    jta_transaction_timeout:     '30'
+    log_file_min_size:           '5000'
+    log_filecount:               '10'
+    log_filename:                '/var/log/weblogic/adf_domain.log'
+    log_number_of_files_limited: '1'
+    log_rotate_logon_startup:    '1'
+    log_rotationtype:            'bySize'
+    security_crossdomain:        '1'
+
+# subscribe on a domain change and restart the adminserver
+wls_adminserver_instances:
+  'AdminServer_adf_domain':
+    ensure:                    'running'
+    server_name:               'AdminServer'
+    domain_name:               *domain_name
+    domain_path:               "/opt/oracle/middleware12c/user_projects/domains/adf_domain"
+    os_user:                   *wls_os_user
+    weblogic_home_dir:         *wls_weblogic_home_dir
+    weblogic_user:             *wls_weblogic_user
+    weblogic_password:         *domain_wls_password
+    jdk_home_dir:              '/usr/java/latest'
+    nodemanager_address:       *domain_adminserver_address
+    nodemanager_port:          5556
+    jsse_enabled:              true
+    refreshonly:               true
+    subscribe:                 Wls_domain[adf_domain]
+
+
+# create 2 machines
+machines_instances:
+  'Node1':
+    ensure:         'present'
+    listenaddress:  '10.10.10.21'
+    listenport:     '5556'
+    machinetype:    'UnixMachine'
+    nmtype:         'SSL'
+
+server_vm_args_permsize:      &server_vm_args_permsize     '-XX:PermSize=256m'
+server_vm_args_max_permsize:  &server_vm_args_max_permsize '-XX:MaxPermSize=512m'
+server_vm_args_memory:        &server_vm_args_memory       '-Xms752m'
+server_vm_args_max_memory:    &server_vm_args_max_memory   '-Xmx752m'
+
+server_instances:
+  'WebServer1':
+     ensure:                         'present'
+     arguments:
+             - *server_vm_args_permsize
+             - *server_vm_args_max_permsize
+             - *server_vm_args_memory
+             - *server_vm_args_max_memory
+             - '-Dweblogic.Stdout=/var/log/weblogic/WebServer1.out'
+             - '-Dweblogic.Stderr=/var/log/weblogic/WebServer1_err.out'
+     listenaddress:                  '10.10.10.21'
+     listenport:                     '8001'
+     logfilename:                    '/var/log/weblogic/WebServer1.log'
+     machine:                        'Node1'
+     sslenabled:                     '1'
+     ssllistenport:                  '8002'
+     sslhostnameverificationignored: '1'
+     jsseenabled:                    '1'
+     require:                        Wls_machine[Node1]
+  'JmsWlsServer1':
+     ensure:                         'present'
+     arguments:
+             - *server_vm_args_permsize
+             - *server_vm_args_max_permsize
+             - *server_vm_args_memory
+             - *server_vm_args_max_memory
+             - '-Dweblogic.Stdout=/var/log/weblogic/JmsWlsServer1.out'
+             - '-Dweblogic.Stderr=/var/log/weblogic/JmsWlsServer1_err.out'
+     listenaddress:                  '10.10.10.21'
+     listenport:                     '8021'
+     logfilename:                    '/var/log/weblogic/JmsWlsServer1.log'
+     machine:                        'Node1'
+     jsseenabled:                    '1'
+     require:                        Wls_machine[Node1]
+
+
+# create cluster and assign the managed servers
+cluster_instances:
+  'WebCluster':
+    ensure:         'present'
+    messagingmode:  'unicast'
+    migrationbasis: 'database'
+    servers:
+      - 'WebServer1'
+    require:
+      - Wls_server[WebServer1]
+  'JmsCluster':
+    ensure:         'present'
+    messagingmode:  'unicast'
+    migrationbasis: 'database'
+    servers:
+      - 'JmsWlsServer1'
+    require:
+      - Wls_server[JmsWlsServer1]
+
+# datasource_instances:
+#     'tlogDS':
+#       ensure:                      'present'
+#       drivername:                  'oracle.jdbc.OracleDriver'
+#       globaltransactionsprotocol:  'None'
+#       initialcapacity:             '2'
+#       jndinames:
+#         - 'jdbc/tlogDS'
+#       maxcapacity:                 '15'
+#       target:
+#         - 'WebServer1'
+#         - 'JmsWlsServer1'
+#       targettype:
+#         - 'Server'
+#         - 'Server'
+#       testtablename:               'SQL SELECT 1 FROM DUAL'
+#       url:                         "jdbc:oracle:thin:@wlsdb.example.com:1521/wlsrepos.example.com"
+#       user:                        'tlog'
+#       password:                    'tlog'
+#       usexa:                       '1'
+
+# server_tlog_instances:
+#   'JmsWlsServer1':
+#       ensure:                      'present'
+#       tlog_enabled:                'true'
+#       tlog_datasource:             'tlogDS'
+#       tlog_datasource_prefix:      'TLOG_JmsWlsServer1_'
+#   'WebServer1':
+#       ensure:                      'present'
+#       tlog_enabled:                'true'
+#       tlog_datasource:             'tlogDS'
+#       tlog_datasource_prefix:      'TLOG_WebServer1_'
+
+# fmw cluster
+fmw_jrf_cluster_instances:
+  'WebCluster':
+     domain_name:          "adf_domain"
+     jrf_target_name:      "WebCluster"
+     opss_datasource_name: "opss-data-source"
+     log_output:           *logoutput
+     weblogic_user:        *wls_weblogic_user
+     weblogic_password:    *domain_wls_password
+     adminserver_address:  *domain_adminserver_address
+
+fmwlogdir_instances:
+  'AdminServer':
+     server:               'AdminServer'
+     weblogic_user:        *wls_weblogic_user
+     weblogic_password:    *domain_wls_password
+     adminserver_address:  *domain_adminserver_address
+     log_dir:              *wls_log_dir
+     require:              Orawls::Utils::Fmwclusterjrf[WebCluster]
+  'WebServer1':
+     server:              'WebServer1'
+     weblogic_user:        *wls_weblogic_user
+     weblogic_password:    *domain_wls_password
+     adminserver_address:  *domain_adminserver_address
+     log_dir:              *wls_log_dir
+     require:              Orawls::Utils::Fmwclusterjrf[WebCluster]
+
+
+webtier_instances:
+  'ohs1':
+    action_name:           'create'
+    instance_name:         'ohs1'
+    machine_name:          'Node1'
+
+
+
+file_persistence_folders:
+   '/opt/oracle/middleware12c/user_projects/domains/adf_domain/JmsPersistence1':
+      ensure:     directory
+      recurse:    false
+      replace:    false
+      mode:       '0775'
+      owner:      'oracle'
+      group:      'dba'
+
+
+file_persistence_store_instances:
+  'jmsFile1':
+    ensure:         'present'
+    directory:      'JmsPersistence1'
+    target:
+      - 'JmsWlsServer1'
+    targettype:
+      - 'Server'
+    require:
+      - Wls_server[JmsWlsServer1]
+      - File[/opt/oracle/middleware12c/user_projects/domains/adf_domain/JmsPersistence1]
+
+
+jmsserver_instances:
+   'jmsServer1':
+     ensure:              'present'
+     target:
+       - 'JmsWlsServer1'
+     targettype:
+       - 'Server'
+     persistentstore:     'jmsFile1'
+     persistentstoretype: 'FileStore'
+     require:
+       - Wls_server[JmsWlsServer1]
+       - Wls_file_persistence_store[jmsFile1]
+
+
+jms_modules_instances:
+   'jmsClusterModule':
+     ensure:      'present'
+     target:
+       - 'JmsCluster'
+     targettype:
+       - 'Cluster'
+     require:     Wls_cluster[JmsCluster]
+
+jms_subdeployments_instances:
+   'jmsClusterModule:jmsServers':
+      ensure:     'present'
+      target:
+        - 'jmsServer1'
+      targettype:
+        - 'JMSServer'
+      require:
+        - Wls_jms_module[jmsClusterModule]
+        - Wls_jmsserver[jmsServer1]
+
