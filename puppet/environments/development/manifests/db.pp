@@ -117,8 +117,6 @@ class oradb_11g {
     oradb::listener{'start listener':
       oracle_base  => lookup('oracle_base_dir'),
       oracle_home  => lookup('oracle_home_dir'),
-      user         => lookup('oracle_os_user'),
-      group        => lookup('oracle_os_group'),
       action       => 'start',
       require      => Oradb::Net['config net8'],
     }

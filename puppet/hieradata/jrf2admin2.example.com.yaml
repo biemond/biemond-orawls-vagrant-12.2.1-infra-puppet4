@@ -40,26 +40,35 @@ fmw_installations:
     fmw_product:               "web"
     fmw_file1:                 "fmw_12.2.1.2.0_ohs_linux64_Disk1_1of1.zip"
     oracle_base_home_dir:      *wls_oracle_base_home_dir
+  # 'soa1221':
+  #   fmw_product:               "soa"
+  #   fmw_file1:                 "fmw_12.2.1.2.0_soa_Disk1_1of1.zip"
+  #   oracle_base_home_dir:      *wls_oracle_base_home_dir
+  # 'osb1221':
+  #   fmw_product:               "osb"
+  #   fmw_file1:                 "fmw_12.2.1.2.0_osb_Disk1_1of1.zip"
+  #   oracle_base_home_dir:      *wls_oracle_base_home_dir
   # 'forms1221':
-  #   fmw_product:             "forms"
-  #   fmw_file1:               "fmw_12.2.1.0.0_fr_linux64_Disk1_1of1.zip"
-  #   log_output:              true
-  #   remote_file:             false
+  #   fmw_product:               "forms"
+  #   fmw_file1:                 "fmw_12.2.1.2.0_fr_linux64_Disk1_1of1.zip"
+  #   oracle_base_home_dir:      *wls_oracle_base_home_dir
   # 'wcc1221':
-  #   fmw_product:             "wcc"
-  #   fmw_file1:               "fmw_12.2.1.0.0_wccontent_Disk1_1of1.zip"
-  #   log_output:              true
-  #   remote_file:             false
+  #   fmw_product:               "wcc"
+  #   fmw_file1:                 "fmw_12.2.1.2.0_wccontent_Disk1_1of1.zip"
+  #   oracle_base_home_dir:      *wls_oracle_base_home_dir
   # 'wc1221':
-  #   fmw_product:             "wc"
-  #   fmw_file1:               "fmw_12.2.1.0.0_wcportal_Disk1_1of1.zip"
-  #   log_output:              true
-  #   remote_file:             false
+  #   fmw_product:               "wc"
+  #   fmw_file1:                 "fmw_12.2.1.2.0_wcportal_Disk1_1of1.zip"
+  #   oracle_base_home_dir:      *wls_oracle_base_home_dir
+  # 'wcs1221':
+  #   fmw_product:               "wcs"
+  #   fmw_file1:                 "fmw_12.2.1.2.0_wcsites_Disk1_1of1.zip"
+  #   wcs_mode:                  'sites' # Enum['sites','examples','satellite']
+  #   oracle_base_home_dir:      *wls_oracle_base_home_dir
   # 'b2b1221':
-  #   fmw_product:             "b2b"
-  #   fmw_file1:               "fmw_12.2.1.0.0_b2b_Disk1_1of1.zip"
-  #   log_output:              true
-  #   remote_file:             false
+  #   fmw_product:               "b2b"
+  #   fmw_file1:                 "fmw_12.2.1.2.0_b2b_Disk1_1of1.zip"
+  #   oracle_base_home_dir:      *wls_oracle_base_home_dir
 
 
 # no patching
